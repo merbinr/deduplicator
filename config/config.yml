@@ -1,0 +1,17 @@
+incomming_queue:
+  user: rabbit
+  host: input_rabbitmq
+  port: 5672
+  queue_name: logs
+
+outgoing_queue:
+  user: rabbit
+  host: input_rabbitmq
+  port: 5672
+  queue_name: logs
+
+redis_cache:
+  host: redis_cache
+  port: 6379
+  db: 0
+  
