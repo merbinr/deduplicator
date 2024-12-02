@@ -1,12 +1,12 @@
 incomming_queue:
   user: rabbit
-  host: input_rabbitmq
+  host: incoming_rabbitmq
   port: 5672
   queue_name: logs
 
 outgoing_queue:
   user: rabbit
-  host: input_rabbitmq
+  host: outgoing_rabbitmq
   port: 5672
   queue_name: logs
 
@@ -14,4 +14,9 @@ redis_cache:
   host: redis_cache
   port: 6379
   db: 0
+  expiry: 3600
   
+log_sources:
+  aws_vpc_logs:
+    unique_string_fields: AccountID,InterfaceID,SourceIP,SourcePort,DestinationPort 
+

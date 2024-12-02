@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/merbinr/deduplicator/internal/config"
 	"github.com/redis/go-redis/v9"
@@ -27,8 +28,9 @@ func LoadRedisClient() error {
 	return nil
 }
 
-func SetValue(key string, value string, expiry int) error {
-	err := rdb.Set(ctx, key, value, 0).Err()
+func SetValue(key string, value string) error {
+	expiry := config.Config.RedisCache.Expiry
+	err := rdb.Set(ctx, key, value, time.Duration(expiry)).Err()
 	if err != nil {
 		return fmt.Errorf("unable to set key: %s in the cache, error: %s", key, err)
 	}
@@ -37,6 +39,10 @@ func SetValue(key string, value string, expiry int) error {
 
 func GetValue(key string) (string, error) {
 	val, err := rdb.Get(ctx, key).Result()
+
+	if err == redis.Nil {
+		return "", nil
+	}
 	if err != nil {
 		return "", fmt.Errorf("unable to get value for the key %s from cache, error: %s", key, err)
 	}

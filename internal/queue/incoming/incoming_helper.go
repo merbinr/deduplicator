@@ -46,11 +46,11 @@ func CreateQueueClient() error {
 	return nil
 }
 
-func ConsumeMessage() ([]string, error) {
+func ConsumeMessage() ([]amqp.Delivery, error) {
 	msgs, err := incomming_queue_conn.Channel.Consume(
 		incomming_queue_conn.Queue.Name, // Queue name
 		"",                              // Consumer tag
-		true,                            // Auto-ack
+		false,                           // Auto-ack
 		false,                           // Exclusive
 		false,                           // No-local
 		false,                           // No-wait
@@ -58,14 +58,13 @@ func ConsumeMessage() ([]string, error) {
 	)
 
 	if err != nil {
-		return []string{}, fmt.Errorf("unable to consume message from incomming ")
+		return []amqp.Delivery{}, fmt.Errorf("unable to consume message from incomming ")
 	}
 
-	messages := []string{}
+	messages := []amqp.Delivery{}
 	current_number_of_msg := 1
 	for msg := range msgs {
-		messages = append(messages, string(msg.Body))
-
+		messages = append(messages, msg)
 		if current_number_of_msg >= 50 {
 			return messages, nil
 		}
