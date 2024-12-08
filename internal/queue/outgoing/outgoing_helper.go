@@ -13,14 +13,18 @@ var outgoing_queue_conn queue.Queue_model
 
 func CreateQueueClient() error {
 	var err error
-
 	username := config.Config.QutgoingQueue.User
-	host := config.Config.QutgoingQueue.Host
 	port := config.Config.QutgoingQueue.Port
 	password := os.Getenv("DEDUPLICATOR_OUTGOING_QUEUE_PASSWORD")
 	if password == "" {
 		return fmt.Errorf("DEDUPLICATOR_OUTGOING_QUEUE_PASSWORD env is empty, please set it")
 	}
+
+	host := os.Getenv("DEDUPLICATOR_OUTGOING_QUEUE_HOST")
+	if host == "" {
+		return fmt.Errorf("DEDUPLICATOR_OUTGOING_QUEUE_HOST env is empty, please set it")
+	}
+
 	conn_string := fmt.Sprintf("amqp://%s:%s@%s:%d/", username, password, host, port)
 	outgoing_queue_conn.Conn, err = amqp.Dial(conn_string)
 	if err != nil {

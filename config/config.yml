@@ -1,12 +1,12 @@
 incomming_queue:
+  # For host, set DEDUPLICATOR_INCOMING_QUEUE_HOST environment variable
   user: rabbit
-  host: incoming_rabbitmq
   port: 5672
   queue_name: logs
 
 outgoing_queue:
+ # For host, set DEDUPLICATOR_OUTGOING_QUEUE_HOST environment variable
   user: rabbit
-  host: outgoing_rabbitmq
   port: 5672
   queue_name: logs
 
@@ -14,7 +14,7 @@ redis_cache:
   host: redis_cache
   port: 6379
   db: 0
-  expiry: 3600
+  expiry: 3600   # 1 hour
   
 log_sources:
   aws_vpc_logs:
