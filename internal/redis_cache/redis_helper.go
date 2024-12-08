@@ -14,7 +14,12 @@ var ctx = context.Background()
 var rdb *redis.Client
 
 func LoadRedisClient() error {
-	address := fmt.Sprintf("%s:%d", config.Config.RedisCache.Host, config.Config.IncommingQueue.Port)
+	host := os.Getenv("DEDUPLICATOR_REDIS_CACHE_HOST")
+	if host == "" {
+		return fmt.Errorf("DEDUPLICATOR_REDIS_CACHE_HOST env variable not set")
+	}
+
+	address := fmt.Sprintf("%s:%d", host, config.Config.IncommingQueue.Port)
 	password := os.Getenv("DEDUPLICATOR_REDIS_PASSWORD")
 	if password == "" {
 		return fmt.Errorf("DEDUPLICATOR_REDIS_PASSWORD env variable not set")

@@ -11,7 +11,7 @@ outgoing_queue:
   queue_name: logs
 
 redis_cache:
-  host: redis_cache
+ # For host, set DEDUPLICATOR_REDIS_CACHE_HOST environment variable
   port: 6379
   db: 0
   expiry: 3600   # 1 hour
