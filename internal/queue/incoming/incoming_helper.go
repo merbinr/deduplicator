@@ -2,14 +2,16 @@ package incoming
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 
 	"github.com/merbinr/deduplicator/internal/config"
+	"github.com/merbinr/deduplicator/internal/deduplication"
 	"github.com/merbinr/deduplicator/internal/queue"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-var incomming_queue_conn queue.Queue_model
+var incoming_queue_conn queue.Queue_model
 
 func CreateQueueClient() error {
 	var err error
@@ -28,19 +30,19 @@ func CreateQueueClient() error {
 
 	conn_string := fmt.Sprintf("amqp://%s:%s@%s:%d/", username, password, host, port)
 
-	incomming_queue_conn.Conn, err = amqp.Dial(conn_string)
+	incoming_queue_conn.Conn, err = amqp.Dial(conn_string)
 	if err != nil {
 		return fmt.Errorf("unable to connect incoming queue, err: %s", err)
 	}
 
-	incomming_queue_conn.Channel, err = incomming_queue_conn.Conn.Channel()
+	incoming_queue_conn.Channel, err = incoming_queue_conn.Conn.Channel()
 	if err != nil {
 		return fmt.Errorf("unable to create channel from connection in incomming queue, err: %s", err)
 	}
 
-	incomming_queue_conn.Queue, err = incomming_queue_conn.Channel.QueueDeclare(
+	incoming_queue_conn.Queue, err = incoming_queue_conn.Channel.QueueDeclare(
 		config.Config.IncommingQueue.Name, // name
-		false,                             // durable
+		true,                              // durable
 		false,                             // delete when unused
 		false,                             // exclusive
 		false,                             // no-wait
@@ -52,29 +54,31 @@ func CreateQueueClient() error {
 	return nil
 }
 
-func ConsumeMessage() ([]amqp.Delivery, error) {
-	msgs, err := incomming_queue_conn.Channel.Consume(
-		incomming_queue_conn.Queue.Name, // Queue name
-		"",                              // Consumer tag
-		false,                           // Auto-ack
-		false,                           // Exclusive
-		false,                           // No-local
-		false,                           // No-wait
-		nil,                             // Arguments
+func ConsumeMessage() error {
+	slog.Info("Trying to consume message from incoming queue")
+	msgs, err := incoming_queue_conn.Channel.Consume(
+		incoming_queue_conn.Queue.Name, // queue
+		"",                             // consumer tag
+		false,                          // auto-acknowledge
+		false,                          // exclusive
+		false,                          // no-local
+		false,                          // no-wait
+		nil,                            // arguments
 	)
-
 	if err != nil {
-		return []amqp.Delivery{}, fmt.Errorf("unable to consume message from incomming ")
+		return err
 	}
 
-	messages := []amqp.Delivery{}
-	current_number_of_msg := 1
 	for msg := range msgs {
-		messages = append(messages, msg)
-		if current_number_of_msg >= 50 {
-			return messages, nil
+		err = deduplication.ProcessDeduplication(msg.Body)
+		if err != nil {
+			slog.Error(fmt.Sprintf("unable to process deduplication, err: %s", err))
 		}
-		current_number_of_msg = current_number_of_msg + 1
+		err = msg.Ack(true)
+		if err != nil {
+			slog.Error(fmt.Sprintf("unable to acknowledge the message, err: %s", err))
+		}
 	}
-	return messages, nil
+	slog.Info("Channel closed, breaking the loop")
+	return nil
 }

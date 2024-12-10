@@ -8,41 +8,30 @@ import (
 
 	"github.com/buger/jsonparser"
 	"github.com/merbinr/deduplicator/internal/config"
-	"github.com/merbinr/deduplicator/internal/queue/incoming"
 	"github.com/merbinr/deduplicator/internal/queue/outgoing"
 	rediscache "github.com/merbinr/deduplicator/internal/redis_cache"
 	"github.com/merbinr/log_models/models"
 )
 
-func ProcessDeduplication() error {
-	messages, err := incoming.ConsumeMessage()
-
+func ProcessDeduplication(msg []byte) error {
+	cloud, err := jsonparser.GetString(msg, "Cloud")
 	if err != nil {
-		return fmt.Errorf("unable to get the messages from incoming queue")
+		return fmt.Errorf("unable to get cloud value from log message, err: %s", err)
 	}
-	for _, msg := range messages {
 
-		cloud, err := jsonparser.GetString(msg.Body, "cloud")
+	log_type, err := jsonparser.GetString(msg, "Type")
+	if err != nil {
+		return fmt.Errorf("unable to get log_type value from log message")
+	}
+
+	if cloud == "aws" && log_type == "vpc" {
+		err = processAwsVpcLogs(msg)
 		if err != nil {
-			return fmt.Errorf("unable to get cloud value from log message, err: %s", err)
+			return fmt.Errorf("unable to process AWS VPC log, err: %s", err)
 		}
-
-		log_type, err := jsonparser.GetString(msg.Body, "type")
-		if err != nil {
-			return fmt.Errorf("unable to get log_type value from log message")
-		}
-
-		if cloud == "aws" && log_type == "vpc" {
-			err = processAwsVpcLogs(msg.Body)
-			if err != nil {
-				return fmt.Errorf("unable to process AWS VPC log, err: %s", err)
-			}
-		}
-		err = msg.Ack(true)
-		if err != nil {
-			return fmt.Errorf("unable to acknowlege the message, err: %s", err)
-		}
-
+	}
+	if err != nil {
+		return fmt.Errorf("unable to acknowlege the message, err: %s", err)
 	}
 	return nil
 }
@@ -83,6 +72,7 @@ func createUniqueStrAwsVpcLog(vpc_log models.VpcNormalizedData) (string, error) 
 	val := reflect.ValueOf(vpc_log)
 	typ := reflect.TypeOf(vpc_log)
 	unique_string := ""
+
 	for _, field := range fields {
 		field = strings.TrimSpace(field)
 		// Check field exist
@@ -93,11 +83,16 @@ func createUniqueStrAwsVpcLog(vpc_log models.VpcNormalizedData) (string, error) 
 
 		// Fetch value using field name
 		value := val.FieldByName(field)
-		unique_string = unique_string + strings.TrimSpace(value.String())
+		switch value.Kind() {
+		case reflect.String:
+			unique_string = unique_string + strings.TrimSpace(value.String())
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			unique_string = unique_string + fmt.Sprintf("%d", value.Int())
+		default:
+			return "", fmt.Errorf("field '%s' is not string or int", field)
+		}
 	}
-
 	DEFAULT_UNIQUE_STRING := "awsvpclogs_"
 	unique_string = DEFAULT_UNIQUE_STRING + unique_string
 	return unique_string, nil
-
 }

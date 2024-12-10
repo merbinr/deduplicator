@@ -7,27 +7,28 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/merbinr/deduplicator/internal/deduplication"
+	"github.com/merbinr/deduplicator/internal/queue/incoming"
 )
 
 func main() {
 	initializer()
 	timeout_seconds := get_timeout_seconds()
-
+	fmt.Println("De-duplication process started")
 	for {
-		fmt.Println("Running...")
-		time.Sleep(time.Duration(timeout_seconds))
-		err := deduplication.ProcessDeduplication()
+
+		err := incoming.ConsumeMessage()
 		if err != nil {
 			slog.Error(fmt.Sprintf("unable to process dedplucation, err: %s", err))
 		}
+		slog.Info(fmt.Sprintf("Sleeping for %d seconds", timeout_seconds))
+		time.Sleep(time.Duration(timeout_seconds) * time.Second)
 	}
 
 }
 
 func get_timeout_seconds() int {
 	sleep_intervel_time_str := os.Getenv("DEDUPLICATOR_SLEEP_INTERVEL_TIME")
-	default_timeout_time := 10 // 10 Seconds
+	default_timeout_time := 2 // 2 Second
 	if sleep_intervel_time_str == "" {
 		return default_timeout_time
 	} else {

@@ -38,7 +38,7 @@ func CreateQueueClient() error {
 
 	outgoing_queue_conn.Queue, err = outgoing_queue_conn.Channel.QueueDeclare(
 		config.Config.QutgoingQueue.Name, // name
-		false,                            // durable
+		true,                             // durable
 		false,                            // delete when unused
 		false,                            // exclusive
 		false,                            // no-wait
