@@ -19,14 +19,13 @@ func LoadRedisClient() error {
 		return fmt.Errorf("DEDUPLICATOR_REDIS_CACHE_HOST env variable not set")
 	}
 
-	// address := fmt.Sprintf("%s:%d", host, config.Config.IncommingQueue.Port)
+	address := fmt.Sprintf("%s:%d", host, config.Config.RedisCache.Port)
 	// password := os.Getenv("DEDUPLICATOR_REDIS_PASSWORD")
 	// if password == "" {
 	// 	return fmt.Errorf("DEDUPLICATOR_REDIS_PASSWORD env variable not set")
 	// }
-
 	rdb = redis.NewClient(&redis.Options{
-		Addr: "redis-cache:6379",
+		Addr: address,
 		// Password: password,
 		DB: config.Config.RedisCache.DB,
 	})

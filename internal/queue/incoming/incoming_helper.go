@@ -70,7 +70,10 @@ func ConsumeMessage() error {
 	}
 
 	for msg := range msgs {
+		slog.Debug(fmt.Sprintf("Processing deduplication for message: %s", string(msg.Body)))
 		err = deduplication.ProcessDeduplication(msg.Body)
+		slog.Debug("Deduplication process completed")
+
 		if err != nil {
 			slog.Error(fmt.Sprintf("unable to process deduplication, err: %s", err))
 		}

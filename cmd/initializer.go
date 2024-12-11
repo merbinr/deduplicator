@@ -11,7 +11,28 @@ import (
 	rediscache "github.com/merbinr/deduplicator/internal/redis_cache"
 )
 
+func setLogLevel() {
+	logLevel := os.Getenv("DEDUPLICATOR_LOG_LEVEL")
+	if logLevel == "" {
+		logLevel = "INFO"
+	}
+
+	switch logLevel {
+	case "DEBUG":
+		slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})))
+	case "INFO":
+		slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})))
+	case "ERROR":
+		slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError})))
+	default:
+		slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})))
+	}
+}
+
 func initializer() {
+	// Setting log level
+	setLogLevel()
+
 	// Loading config
 	err := config.LoadConfig()
 	if err != nil {
