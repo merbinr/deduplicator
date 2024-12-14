@@ -6,6 +6,8 @@ import (
 	"os"
 	"time"
 
+	"log/slog"
+
 	"github.com/merbinr/deduplicator/internal/config"
 	"github.com/redis/go-redis/v9"
 )
@@ -38,7 +40,9 @@ func LoadRedisClient() error {
 
 func SetValue(key string, value string) error {
 	expiry := config.Config.RedisCache.Expiry
-	err := rdb.Set(ctx, key, value, time.Duration(expiry)).Err()
+	expiry_in_duration := time.Duration(expiry) * time.Second
+	// expiry is already of type time.Duration
+	err := rdb.Set(ctx, key, value, expiry_in_duration).Err()
 	if err != nil {
 		return fmt.Errorf("unable to set key: %s in the cache, error: %s", key, err)
 	}
@@ -49,6 +53,7 @@ func GetValue(key string) (string, error) {
 	val, err := rdb.Get(ctx, key).Result()
 
 	if err == redis.Nil {
+		slog.Debug("Key does not exist in redis cache")
 		return "", nil
 	}
 	if err != nil {
