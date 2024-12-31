@@ -6,8 +6,8 @@ import (
 	"os"
 
 	"github.com/merbinr/deduplicator/internal/config"
-	"github.com/merbinr/deduplicator/internal/opensearch_helper"
-	outputchannel "github.com/merbinr/deduplicator/internal/output_channel"
+	"github.com/merbinr/deduplicator/internal/opensearchhelper"
+	"github.com/merbinr/deduplicator/internal/outputChannel"
 	"github.com/merbinr/deduplicator/internal/queue/incoming"
 	"github.com/merbinr/deduplicator/internal/queue/outgoing"
 )
@@ -20,7 +20,7 @@ func main() {
 	go incoming.ConsumeMessage()
 
 	if config.Config.OutputMethod == "queue" {
-		for msg := range outputchannel.OutputChannel {
+		for msg := range outputChannel.OutputChannel {
 			err := outgoing.SendMessage(msg)
 			if err != nil {
 				slog.Error(fmt.Sprintf("unable to send message to outgoing queue, err: %s", err))
@@ -28,7 +28,7 @@ func main() {
 		}
 	} else if config.Config.OutputMethod == "webhook" {
 		for {
-			go opensearch_helper.IngestLogs()
+			go opensearchhelper.IngestLogs()
 		}
 	} else {
 		slog.Error(fmt.Sprintf("Invalid output method: %s", config.Config.OutputMethod))

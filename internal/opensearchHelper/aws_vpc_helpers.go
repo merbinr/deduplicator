@@ -1,4 +1,4 @@
-package opensearch_helper
+package opensearchhelper
 
 import (
 	"bytes"
@@ -8,7 +8,7 @@ import (
 	"log"
 	"strings"
 
-	outputchannel "github.com/merbinr/deduplicator/internal/output_channel"
+	"github.com/merbinr/deduplicator/internal/outputChannel"
 	"github.com/opensearch-project/opensearch-go/opensearchapi"
 )
 
@@ -127,7 +127,7 @@ func prepareAwsVpcLogsForIngestion(batchSize int) []byte {
 	indexName := "aws_vpc"
 	currentRecord := 1
 
-	for log := range outputchannel.OutputChannel {
+	for log := range outputChannel.OutputChannel {
 		meta := map[string]interface{}{
 			"index": map[string]string{"_index": indexName},
 		}

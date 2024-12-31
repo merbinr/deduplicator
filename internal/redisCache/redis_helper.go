@@ -16,20 +16,17 @@ var ctx = context.Background()
 var rdb *redis.Client
 
 func LoadRedisClient() error {
-	host := os.Getenv("DEDUPLICATOR_REDIS_CACHE_HOST")
+	HOST_ENV := fmt.Sprintf("%s_DEDUPLICATOR_REDIS_CACHE_HOST", config.Config.StageName)
+	host := os.Getenv(HOST_ENV)
 	if host == "" {
-		return fmt.Errorf("DEDUPLICATOR_REDIS_CACHE_HOST env variable not set")
+		return fmt.Errorf("%s env variable not set", HOST_ENV)
 	}
 
-	address := fmt.Sprintf("%s:%d", host, config.Config.RedisCache.Port)
-	// password := os.Getenv("DEDUPLICATOR_REDIS_PASSWORD")
-	// if password == "" {
-	// 	return fmt.Errorf("DEDUPLICATOR_REDIS_PASSWORD env variable not set")
-	// }
+	address := fmt.Sprintf("%s:%d", host, config.Config.Services.RedisCache.Port)
 	rdb = redis.NewClient(&redis.Options{
 		Addr: address,
 		// Password: password,
-		DB: config.Config.RedisCache.DB,
+		DB: config.Config.Services.RedisCache.Db,
 	})
 	_, err := rdb.Ping(context.Background()).Result()
 	if err != nil {
@@ -39,7 +36,7 @@ func LoadRedisClient() error {
 }
 
 func SetValue(key string, value string) error {
-	expiry := config.Config.RedisCache.Expiry
+	expiry := config.Config.Services.RedisCache.Expiry
 	expiry_in_duration := time.Duration(expiry) * time.Second
 	// expiry is already of type time.Duration
 	err := rdb.Set(ctx, key, value, expiry_in_duration).Err()

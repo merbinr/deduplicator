@@ -6,9 +6,10 @@ import (
 	"os"
 
 	"github.com/merbinr/deduplicator/internal/config"
+	"github.com/merbinr/deduplicator/internal/opensearchhelper"
 	"github.com/merbinr/deduplicator/internal/queue/incoming"
 	"github.com/merbinr/deduplicator/internal/queue/outgoing"
-	rediscache "github.com/merbinr/deduplicator/internal/redis_cache"
+	"github.com/merbinr/deduplicator/internal/rediscache"
 )
 
 func setLogLevel() {
@@ -47,10 +48,18 @@ func initializer() {
 		os.Exit(1)
 	}
 
-	// Loading outgoing queue
-	err = outgoing.CreateQueueClient()
-	if err != nil {
-		slog.Error(fmt.Sprintf("unable to create outgoing queue client, %s", err))
+	if config.Config.OutputMethod == "queue" {
+		// Loading outgoing queue
+		err = outgoing.CreateQueueClient()
+		if err != nil {
+			slog.Error(fmt.Sprintf("unable to create outgoing queue client, %s", err))
+			os.Exit(1)
+		}
+	} else if config.Config.OutputMethod == "webhook" {
+		// Load opensearch client
+		opensearchhelper.LoadOpenSearchClient()
+	} else {
+		slog.Error(fmt.Sprintf("Invalid output method: %s", config.Config.OutputMethod))
 		os.Exit(1)
 	}
 

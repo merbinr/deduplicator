@@ -15,17 +15,21 @@ var incoming_queue_conn queue.Queue_model
 
 func CreateQueueClient() error {
 	var err error
-	username := config.Config.IncommingQueue.User
+	username := config.Config.Services.IncommingQueue.User
 
-	host := os.Getenv("DEDUPLICATOR_INCOMING_QUEUE_HOST")
+	HOST_ENV := fmt.Sprintf("%s_DEDUPLICATOR_INCOMING_QUEUE_HOST", config.Config.StageName)
+
+	host := os.Getenv(HOST_ENV)
 	if host == "" {
-		return fmt.Errorf("DEDUPLICATOR_INCOMING_QUEUE_HOST env is empty, please set it")
+		return fmt.Errorf("%s env is empty, please set it", HOST_ENV)
 	}
 
-	port := config.Config.IncommingQueue.Port
-	password := os.Getenv("DEDUPLICATOR_INCOMING_QUEUE_PASSWORD")
+	port := config.Config.Services.IncommingQueue.Port
+
+	PASSWORD_ENV := fmt.Sprintf("%s_DEDUPLICATOR_INCOMING_QUEUE_PASSWORD", config.Config.StageName)
+	password := os.Getenv(PASSWORD_ENV)
 	if password == "" {
-		return fmt.Errorf("DEDUPLICATOR_INCOMING_QUEUE_PASSWORD env is empty, please set it")
+		return fmt.Errorf("%s env is empty, please set it", PASSWORD_ENV)
 	}
 
 	conn_string := fmt.Sprintf("amqp://%s:%s@%s:%d/", username, password, host, port)
@@ -41,12 +45,12 @@ func CreateQueueClient() error {
 	}
 
 	incoming_queue_conn.Queue, err = incoming_queue_conn.Channel.QueueDeclare(
-		config.Config.IncommingQueue.Name, // name
-		true,                              // durable
-		false,                             // delete when unused
-		false,                             // exclusive
-		false,                             // no-wait
-		nil,                               // arguments
+		config.Config.Services.IncommingQueue.QueueName, // name
+		true,  // durable
+		false, // delete when unused
+		false, // exclusive
+		false, // no-wait
+		nil,   // arguments
 	)
 	if err != nil {
 		return fmt.Errorf("unable to create queue in incomming queue channel, err: %s", err)

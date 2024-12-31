@@ -1,4 +1,4 @@
-package opensearch_helper
+package opensearchhelper
 
 import (
 	"bytes"
@@ -11,19 +11,30 @@ import (
 	"time"
 
 	"github.com/merbinr/deduplicator/internal/config"
-	outputchannel "github.com/merbinr/deduplicator/internal/output_channel"
+	"github.com/merbinr/deduplicator/internal/outputChannel"
 	"github.com/opensearch-project/opensearch-go"
 )
 
 var OpenSearchClient *opensearch.Client
 
 func LoadOpenSearchClient() {
-	username := config.Config.Opensearch.Username
-	port := config.Config.Opensearch.Port
-	host := config.Config.Opensearch.Host
-	password := os.Getenv("DEDUPLICATOR_OPENSEARCH_PASSWORD")
+	username := config.Config.Services.Opensearch.Username
+	port := config.Config.Services.Opensearch.Port
+
+	DEDUPLICATOR_OPENSEARCH_HOST_ENV := fmt.Sprintf("%s_DEDUPLICATOR_OPENSEARCH_HOST",
+		config.Config.StageName)
+
+	host := os.Getenv(DEDUPLICATOR_OPENSEARCH_HOST_ENV)
+	if host == "" {
+		slog.Error(fmt.Sprintf("%s env is empty, please set it", DEDUPLICATOR_OPENSEARCH_HOST_ENV))
+		os.Exit(1)
+	}
+
+	DEDUPLICATOR_OPENSEARCH_PASSWORD_ENV := fmt.Sprintf("%s_DEDUPLICATOR_OPENSEARCH_PASSWORD",
+		config.Config.StageName)
+	password := os.Getenv(DEDUPLICATOR_OPENSEARCH_PASSWORD_ENV)
 	if password == "" {
-		slog.Error("DEDUPLICATOR_OPENSEARCH_PASSWORD env is empty, please set it")
+		slog.Error(fmt.Sprintf("%s env is empty, please set it", DEDUPLICATOR_OPENSEARCH_PASSWORD_ENV))
 		os.Exit(1)
 	}
 
@@ -62,26 +73,26 @@ func ingestIntoOpensearch(logs *[]byte) {
 func IngestLogs() {
 	currentRetries := 0
 
-	if len(outputchannel.OutputChannel) == 0 {
+	if len(outputChannel.OutputChannel) == 0 {
 		time.Sleep(500 * time.Millisecond)
 		slog.Debug("No logs to ingest")
 		return
 
-	} else if len(outputchannel.OutputChannel) >= config.Config.Opensearch.PreferedBatchSize {
-		slog.Debug(fmt.Sprintf("More logs to ingest than prefered batch size: %d", len(outputchannel.OutputChannel)))
-		preparedLogs := prepareAwsVpcLogsForIngestion(config.Config.Opensearch.PreferedBatchSize)
+	} else if len(outputChannel.OutputChannel) >= config.Config.Services.Opensearch.PreferredBatchSize {
+		slog.Debug(fmt.Sprintf("More logs to ingest than prefered batch size: %d", len(outputChannel.OutputChannel)))
+		preparedLogs := prepareAwsVpcLogsForIngestion(config.Config.Services.Opensearch.PreferredBatchSize)
 		ingestIntoOpensearch(&preparedLogs)
 
 	} else {
 		slog.Info("Batch size is less than prefered batch size")
-		if currentRetries < config.Config.Opensearch.Retries {
+		if currentRetries < config.Config.Services.Opensearch.Retries {
 			slog.Debug("As batch size is less than prefered batch size, waiting for more logs")
-			time.Sleep(time.Duration(config.Config.Opensearch.RetryDelay) * time.Second)
+			time.Sleep(time.Duration(config.Config.Services.Opensearch.RetryDelay) * time.Second)
 			currentRetries++
 
 		} else {
 			slog.Info("Waiting exceeded, ingesting logs even if batch size is less than prefered batch size")
-			preparedLogs := prepareAwsVpcLogsForIngestion(len(outputchannel.OutputChannel))
+			preparedLogs := prepareAwsVpcLogsForIngestion(len(outputChannel.OutputChannel))
 			ingestIntoOpensearch(&preparedLogs)
 		}
 	}

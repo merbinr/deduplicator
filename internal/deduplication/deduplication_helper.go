@@ -9,8 +9,8 @@ import (
 
 	"github.com/buger/jsonparser"
 	"github.com/merbinr/deduplicator/internal/config"
-	outputchannel "github.com/merbinr/deduplicator/internal/output_channel"
-	rediscache "github.com/merbinr/deduplicator/internal/redis_cache"
+	"github.com/merbinr/deduplicator/internal/outputChannel"
+	"github.com/merbinr/deduplicator/internal/rediscache"
 	"github.com/merbinr/log_models/models"
 )
 
@@ -66,7 +66,7 @@ func processAwsVpcLogs(vpc_log_msg []byte) error {
 		// Non duplicate log
 		slog.Debug("Sending the message to outgoing queue")
 
-		outputchannel.OutputChannel <- vpc_log_msg
+		outputChannel.OutputChannel <- vpc_log_msg
 
 		err = rediscache.SetValue(unique_str, string(vpc_log_msg))
 		slog.Debug("Setting the value in redis, So that it can be used for future deduplication")
@@ -81,7 +81,7 @@ func processAwsVpcLogs(vpc_log_msg []byte) error {
 }
 
 func createUniqueStrAwsVpcLog(vpc_log models.VpcNormalizedData) (string, error) {
-	unique_string_fields := config.Config.LogSource.AwsVpcLogsModel.UniqueStringFields
+	unique_string_fields := config.Config.LogSources.AwsVpcLogs.UniqueStringFields
 	fields := strings.Split(unique_string_fields, ",")
 	val := reflect.ValueOf(vpc_log)
 	typ := reflect.TypeOf(vpc_log)

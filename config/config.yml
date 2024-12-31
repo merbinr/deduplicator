@@ -1,34 +1,32 @@
-incomming_queue:
-  # For host, set DEDUPLICATOR_INCOMING_QUEUE_HOST environment variable
-  user: rabbit
-  port: 5672
-  queue_name: logs
-
-outgoing_queue:
- # For host, set DEDUPLICATOR_OUTGOING_QUEUE_HOST environment variable
-  user: rabbit
-  port: 5672
-  queue_name: logs
-
-redis_cache:
- # For host, set DEDUPLICATOR_REDIS_CACHE_HOST environment variable
-  port: 6379
-  db: 0
-  expiry: 3600   # 1 hour
-
-
-opensearch:
-  host: localhost
-  port: 9200
-  username: admin
-  prefered_patch_size: 1000
-  retries: 10         # Number of retries before making batch ingest
-  retry_delay: 5
-  
-
+stage_name: INITIAL_STAGE
 output_method: queue # valid options are queue, webhook
-
 log_sources:
   aws_vpc_logs:
     unique_string_fields: AccountID,InterfaceID,SourceIP,SourcePort,DestinationPort 
 
+services:
+  incomming_queue:
+    # For host, set <STAGE_NAME>DEDUPLICATOR_INCOMING_QUEUE_HOST environment variable
+    user: rabbit
+    port: 5672
+    queue_name: logs  
+
+  outgoing_queue:
+    # For host, set <STAGE_NAME>DEDUPLICATOR_INCOMING_QUEUE_HOST environment variable
+    user: rabbit
+    port: 5672
+    queue_name: logs
+  
+  redis_cache:
+    # For host, set <STAGE_NAME>DEDUPLICATOR_REDIS_CACHE_HOST environment variable
+    port: 6379
+    db: 0
+    expiry: 3600   # 1 hour    
+
+  opensearch:
+    # For host, set <STAGE_NAME>DEDUPLICATOR_OPENSEARCH_HOST environment variable
+    port: 9200
+    username: admin
+    preferred_patch_size: 1000
+    retries: 10         # Number of retries before making batch ingest
+    retry_delay: 5
