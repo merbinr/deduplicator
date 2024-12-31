@@ -54,7 +54,7 @@ func CreateQueueClient() error {
 	return nil
 }
 
-func ConsumeMessage() error {
+func ConsumeMessage() {
 	slog.Info("Trying to consume message from incoming queue")
 	msgs, err := incoming_queue_conn.Channel.Consume(
 		incoming_queue_conn.Queue.Name, // queue
@@ -66,22 +66,21 @@ func ConsumeMessage() error {
 		nil,                            // arguments
 	)
 	if err != nil {
-		return err
+		slog.Error(fmt.Sprintf("unable to consume message from incoming queue, err: %s", err))
 	}
 
 	for msg := range msgs {
-		slog.Debug(fmt.Sprintf("Processing deduplication for message: %s", string(msg.Body)))
-		err = deduplication.ProcessDeduplication(msg.Body)
-		slog.Debug("Deduplication process completed")
+		slog.Debug(fmt.Sprintf("Sending message body into queue: %s", string(msg.Body)))
 
+		err = deduplication.ProcessDeduplication(msg.Body)
 		if err != nil {
 			slog.Error(fmt.Sprintf("unable to process deduplication, err: %s", err))
 		}
+
 		err = msg.Ack(true)
 		if err != nil {
 			slog.Error(fmt.Sprintf("unable to acknowledge the message, err: %s", err))
 		}
 	}
 	slog.Info("Channel closed, breaking the loop")
-	return nil
 }

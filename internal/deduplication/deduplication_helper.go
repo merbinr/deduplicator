@@ -9,7 +9,7 @@ import (
 
 	"github.com/buger/jsonparser"
 	"github.com/merbinr/deduplicator/internal/config"
-	"github.com/merbinr/deduplicator/internal/queue/outgoing"
+	outputchannel "github.com/merbinr/deduplicator/internal/output_channel"
 	rediscache "github.com/merbinr/deduplicator/internal/redis_cache"
 	"github.com/merbinr/log_models/models"
 )
@@ -65,19 +65,18 @@ func processAwsVpcLogs(vpc_log_msg []byte) error {
 		slog.Debug("Got empty message from redis, it means log is not duplicate")
 		// Non duplicate log
 		slog.Debug("Sending the message to outgoing queue")
-		err = outgoing.SendMessage(vpc_log_msg)
-		if err != nil {
-			return fmt.Errorf("unable to send message to outgoing queue, err: %s", err)
-		}
+
+		outputchannel.OutputChannel <- vpc_log_msg
+
 		err = rediscache.SetValue(unique_str, string(vpc_log_msg))
 		slog.Debug("Setting the value in redis, So that it can be used for future deduplication")
 		if err != nil {
 			return fmt.Errorf("unable to set the value in redis, err: %s", err)
 		}
-	}else {
+	} else {
 		slog.Debug("Log is duplicate, so not sending it to outgoing queue")
 	}
-	
+
 	return nil
 }
 

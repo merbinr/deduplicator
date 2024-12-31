@@ -15,7 +15,19 @@ redis_cache:
   port: 6379
   db: 0
   expiry: 3600   # 1 hour
+
+
+opensearch:
+  host: localhost
+  port: 9200
+  username: admin
+  prefered_patch_size: 1000
+  retries: 10         # Number of retries before making batch ingest
+  retry_delay: 5
   
+
+output_method: queue # valid options are queue, webhook
+
 log_sources:
   aws_vpc_logs:
     unique_string_fields: AccountID,InterfaceID,SourceIP,SourcePort,DestinationPort 

@@ -5,6 +5,17 @@ type ConfigModel struct {
 	IncommingQueue queue_model       `yaml:"incomming_queue"`
 	QutgoingQueue  queue_model       `yaml:"outgoing_queue"`
 	LogSource      log_source_model  `yaml:"log_sources"`
+	OutputMethod   string            `yaml:"output_method"`
+	Opensearch     opensearch_model  `yaml:"opensearch"`
+}
+
+type opensearch_model struct {
+	Host              string `yaml:"host"`
+	Port              int    `yaml:"port"`
+	Username          string `yaml:"username"`
+	PreferedBatchSize int    `yaml:"prefered_patch_size"`
+	Retries           int    `yaml:"retries"`
+	RetryDelay        int    `yaml:"retry_delay"`
 }
 
 type queue_model struct {
