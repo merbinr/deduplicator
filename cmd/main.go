@@ -26,7 +26,7 @@ func main() {
 				slog.Error(fmt.Sprintf("unable to send message to outgoing queue, err: %s", err))
 			}
 		}
-	} else if config.Config.OutputMethod == "webhook" {
+	} else if config.Config.OutputMethod == "opensearch" {
 		for {
 			go opensearchhelper.IngestLogs()
 		}

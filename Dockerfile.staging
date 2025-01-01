@@ -1,4 +1,4 @@
 FROM golang:1.22-alpine AS build_env
 WORKDIR /app
 COPY . .
-ENTRYPOINT [ "go", "run", "cmd/main.go" ]
+ENTRYPOINT [ "go", "run", "./cmd" ]

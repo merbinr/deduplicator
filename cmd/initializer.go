@@ -55,7 +55,7 @@ func initializer() {
 			slog.Error(fmt.Sprintf("unable to create outgoing queue client, %s", err))
 			os.Exit(1)
 		}
-	} else if config.Config.OutputMethod == "webhook" {
+	} else if config.Config.OutputMethod == "opensearch" {
 		// Load opensearch client
 		opensearchhelper.LoadOpenSearchClient()
 	} else {
