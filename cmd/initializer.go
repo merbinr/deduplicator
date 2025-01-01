@@ -6,10 +6,10 @@ import (
 	"os"
 
 	"github.com/merbinr/deduplicator/internal/config"
-	"github.com/merbinr/deduplicator/internal/opensearchhelper"
+	opensearchhelper "github.com/merbinr/deduplicator/internal/opensearch_helper"
 	"github.com/merbinr/deduplicator/internal/queue/incoming"
 	"github.com/merbinr/deduplicator/internal/queue/outgoing"
-	"github.com/merbinr/deduplicator/internal/rediscache"
+	rediscache "github.com/merbinr/deduplicator/internal/redis-cache"
 )
 
 func setLogLevel() {

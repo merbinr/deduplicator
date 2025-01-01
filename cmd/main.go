@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/merbinr/deduplicator/internal/config"
-	"github.com/merbinr/deduplicator/internal/opensearchhelper"
+	opensearchhelper "github.com/merbinr/deduplicator/internal/opensearch_helper"
 	"github.com/merbinr/deduplicator/internal/outputChannel"
 	"github.com/merbinr/deduplicator/internal/queue/incoming"
 	"github.com/merbinr/deduplicator/internal/queue/outgoing"

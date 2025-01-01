@@ -10,7 +10,7 @@ import (
 	"github.com/buger/jsonparser"
 	"github.com/merbinr/deduplicator/internal/config"
 	"github.com/merbinr/deduplicator/internal/outputChannel"
-	"github.com/merbinr/deduplicator/internal/rediscache"
+	rediscache "github.com/merbinr/deduplicator/internal/redis-cache"
 	"github.com/merbinr/log_models/models"
 )
 
