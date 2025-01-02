@@ -6,11 +6,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log/slog"
 	"os"
 	"strings"
 
 	"github.com/merbinr/deduplicator/internal/outputChannel"
+	"github.com/merbinr/deduplicator/pkg/logger"
 	"github.com/opensearch-project/opensearch-go/opensearchapi"
 )
 
@@ -22,6 +22,8 @@ func createAwsVpcIndexIfNotExists() {
 }
 
 func createAwsVpcIndex() {
+	logger := logger.GetLogger()
+
 	mapping := strings.NewReader(`
 	{
 	  "mappings": {
@@ -86,43 +88,44 @@ func createAwsVpcIndex() {
 	}
 	response, err := req.Do(context.Background(), OpenSearchClient)
 	if err != nil {
-		slog.Error(fmt.Sprintf("Error creating index: %s", err))
+		logger.Error(fmt.Sprintf("Error creating index: %s", err))
 		os.Exit(1)
 	}
 
 	if response.StatusCode != 200 {
 		body, err := io.ReadAll(response.Body)
 		if err != nil {
-			slog.Error(fmt.Sprintf("Error reading response body: %v\n", err))
+			logger.Error(fmt.Sprintf("Error reading response body: %v\n", err))
 			os.Exit(1)
 		}
-		slog.Error(fmt.Sprintf("Error creating index, status code: %d, body: %s",
+		logger.Error(fmt.Sprintf("Error creating index, status code: %d, body: %s",
 			response.StatusCode, string(body)))
 	} else {
-		slog.Info("Index created successfully")
+		logger.Info("Index created successfully")
 	}
 }
 
 func checkAwsVpcIndexExists() bool {
+	logger := logger.GetLogger()
 	indexName := "aws_vpc"
 	res, err := OpenSearchClient.Indices.Exists([]string{indexName})
 	if err != nil {
-		slog.Error(fmt.Sprintf("Error checking if index exists: %s", err))
+		logger.Error(fmt.Sprintf("Error checking if index exists: %s", err))
 		os.Exit(1)
 	}
 	if res.StatusCode == 200 {
-		slog.Info("Index exists, skipping creation")
+		logger.Info("Index exists, skipping creation")
 		return true
 	} else if res.StatusCode == 404 {
-		slog.Info("Index doesn't exist")
+		logger.Info("Index doesn't exist")
 		return false
 	} else {
 		body, err := io.ReadAll(res.Body)
 		if err != nil {
-			slog.Error(fmt.Sprintf("Error reading response body: %v\n", err))
+			logger.Error(fmt.Sprintf("Error reading response body: %v\n", err))
 			os.Exit(1)
 		}
-		slog.Error(fmt.Sprintf("Error checking if index exists, status code: %d, body %s",
+		logger.Error(fmt.Sprintf("Error checking if index exists, status code: %d, body %s",
 			res.StatusCode, string(body)))
 		return false
 	}

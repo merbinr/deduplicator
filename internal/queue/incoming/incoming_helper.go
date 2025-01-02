@@ -2,13 +2,13 @@ package incoming
 
 import (
 	"fmt"
-	"log/slog"
 	"os"
 	"time"
 
 	"github.com/merbinr/deduplicator/internal/config"
 	"github.com/merbinr/deduplicator/internal/deduplication"
 	"github.com/merbinr/deduplicator/internal/queue"
+	"github.com/merbinr/deduplicator/pkg/logger"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -60,7 +60,8 @@ func CreateQueueClient() error {
 }
 
 func ConsumeMessage() {
-	slog.Info("Trying to consume message from incoming queue")
+	logger := logger.GetLogger()
+	logger.Info("Trying to consume message from incoming queue")
 	msgs, err := incoming_queue_conn.Channel.Consume(
 		incoming_queue_conn.Queue.Name, // queue
 		"",                             // consumer tag
@@ -71,28 +72,28 @@ func ConsumeMessage() {
 		nil,                            // arguments
 	)
 	if err != nil {
-		slog.Error(fmt.Sprintf("unable to consume message from incoming queue, err: %s", err))
+		logger.Error(fmt.Sprintf("unable to consume message from incoming queue, err: %s", err))
 	}
 
 	for {
 		select {
 		case msg := <-msgs:
 			if len(msg.Body) > 0 {
-				slog.Debug(fmt.Sprintf("Sending message body into queue: %s", string(msg.Body)))
+				logger.Debug(fmt.Sprintf("Sending message body into queue: %s", string(msg.Body)))
 				err = deduplication.ProcessDeduplication(msg.Body)
 				if err != nil {
-					slog.Error(fmt.Sprintf("unable to process deduplication, err: %s", err))
+					logger.Error(fmt.Sprintf("unable to process deduplication, err: %s", err))
 				}
 				err = msg.Ack(true)
 				if err != nil {
-					slog.Error(fmt.Sprintf("unable to acknowledge the message, err: %s", err))
+					logger.Error(fmt.Sprintf("unable to acknowledge the message, err: %s", err))
 				}
 			} else {
-				slog.Error("message body is empty")
+				logger.Error("message body is empty")
 				time.Sleep(1 * time.Second)
 			}
 		default:
-			slog.Debug("No message in queue, waiting for 1 second")
+			logger.Debug("No message in queue, waiting for 1 second")
 			time.Sleep(1 * time.Second)
 		}
 	}

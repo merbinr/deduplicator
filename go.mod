@@ -10,6 +10,7 @@ require (
 	github.com/buger/jsonparser v1.1.1
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
+	github.com/natefinch/lumberjack v2.0.0+incompatible
 	github.com/opensearch-project/opensearch-go v1.1.0
 	github.com/rabbitmq/amqp091-go v1.10.0
 	gopkg.in/yaml.v3 v3.0.1

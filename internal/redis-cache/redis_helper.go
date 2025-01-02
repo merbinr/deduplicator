@@ -6,9 +6,8 @@ import (
 	"os"
 	"time"
 
-	"log/slog"
-
 	"github.com/merbinr/deduplicator/internal/config"
+	"github.com/merbinr/deduplicator/pkg/logger"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -47,10 +46,11 @@ func SetValue(key string, value string) error {
 }
 
 func GetValue(key string) (string, error) {
+	logger := logger.GetLogger()
 	val, err := rdb.Get(ctx, key).Result()
 
 	if err == redis.Nil {
-		slog.Debug("Key does not exist in redis cache")
+		logger.Debug("Key does not exist in redis cache")
 		return "", nil
 	}
 	if err != nil {

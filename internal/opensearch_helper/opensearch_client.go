@@ -4,19 +4,20 @@ import (
 	"bytes"
 	"crypto/tls"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"os"
 	"time"
 
 	"github.com/merbinr/deduplicator/internal/config"
 	"github.com/merbinr/deduplicator/internal/outputChannel"
+	"github.com/merbinr/deduplicator/pkg/logger"
 	"github.com/opensearch-project/opensearch-go"
 )
 
 var OpenSearchClient *opensearch.Client
 
 func LoadOpenSearchClient() {
+	logger := logger.GetLogger()
 	username := config.Config.Services.Opensearch.Username
 	port := config.Config.Services.Opensearch.Port
 
@@ -25,7 +26,7 @@ func LoadOpenSearchClient() {
 
 	host := os.Getenv(DEDUPLICATOR_OPENSEARCH_HOST_ENV)
 	if host == "" {
-		slog.Error(fmt.Sprintf("%s env is empty, please set it", DEDUPLICATOR_OPENSEARCH_HOST_ENV))
+		logger.Error(fmt.Sprintf("%s env is empty, please set it", DEDUPLICATOR_OPENSEARCH_HOST_ENV))
 		os.Exit(1)
 	}
 
@@ -33,7 +34,7 @@ func LoadOpenSearchClient() {
 		config.Config.StageName)
 	password := os.Getenv(DEDUPLICATOR_OPENSEARCH_PASSWORD_ENV)
 	if password == "" {
-		slog.Error(fmt.Sprintf("%s env is empty, please set it", DEDUPLICATOR_OPENSEARCH_PASSWORD_ENV))
+		logger.Error(fmt.Sprintf("%s env is empty, please set it", DEDUPLICATOR_OPENSEARCH_PASSWORD_ENV))
 		os.Exit(1)
 	}
 
@@ -47,7 +48,7 @@ func LoadOpenSearchClient() {
 		Password:  password,
 	})
 	if err != nil {
-		slog.Error(fmt.Sprintf("Error creating the client: %s", err))
+		logger.Error(fmt.Sprintf("Error creating the client: %s", err))
 		os.Exit(1)
 	}
 	OpenSearchClient = client
@@ -59,43 +60,52 @@ func createIndexes() {
 }
 
 func ingestIntoOpensearch(logs *[]byte) {
+	logger := logger.GetLogger()
 	blk, err := OpenSearchClient.Bulk(bytes.NewReader(*logs))
 	if err != nil {
-		slog.Error(fmt.Sprintf("Error ingesting data: %s", err))
+		logger.Error(fmt.Sprintf("Error ingesting data: %s", err))
 		os.Exit(1)
 	}
 	if blk.IsError() {
-		slog.Error(fmt.Sprintf("Error ingesting data, status code: %d, body: %s", blk.StatusCode,
+		logger.Error(fmt.Sprintf("Error ingesting data, status code: %d, body: %s", blk.StatusCode,
 			blk.String()))
 		os.Exit(1)
 	}
-	slog.Info("Data ingested successfully")
+	logger.Info("Data ingested successfully")
 }
 
 func IngestLogs() {
+	logger := logger.GetLogger()
 	currentRetries := 0
+	for {
+		logger.Info(fmt.Sprintf("Trying logs ingest into OpenSearch, current batch size: %d",
+			len(outputChannel.OutputChannel)))
+		if len(outputChannel.OutputChannel) == 0 {
+			logger.Debug("No logs to ingest, waiting 5 seconds")
+			time.Sleep(5 * time.Second)
 
-	if len(outputChannel.OutputChannel) == 0 {
-		time.Sleep(500 * time.Millisecond)
-		slog.Debug("No logs to ingest")
-		return
-
-	} else if len(outputChannel.OutputChannel) >= config.Config.Services.Opensearch.PreferredBatchSize {
-		slog.Debug(fmt.Sprintf("More logs to ingest than prefered batch size: %d", len(outputChannel.OutputChannel)))
-		preparedLogs := prepareAwsVpcLogsForIngestion(config.Config.Services.Opensearch.PreferredBatchSize)
-		ingestIntoOpensearch(&preparedLogs)
-
-	} else {
-		slog.Info("Batch size is less than prefered batch size")
-		if currentRetries < config.Config.Services.Opensearch.Retries {
-			slog.Debug("As batch size is less than prefered batch size, waiting for more logs")
-			time.Sleep(time.Duration(config.Config.Services.Opensearch.RetryDelay) * time.Second)
-			currentRetries++
+		} else if len(outputChannel.OutputChannel) >= config.Config.Services.Opensearch.PreferredBatchSize {
+			logger.Debug(fmt.Sprintf("More logs to ingest than prefered batch size: %d, preffered batch size: %d",
+				len(outputChannel.OutputChannel), config.Config.Services.Opensearch.PreferredBatchSize))
+			preparedLogs := prepareAwsVpcLogsForIngestion(config.Config.Services.Opensearch.PreferredBatchSize)
+			ingestIntoOpensearch(&preparedLogs)
+			currentRetries = 0
+			time.Sleep(200 * time.Millisecond)
 
 		} else {
-			slog.Info("Waiting exceeded, ingesting logs even if batch size is less than prefered batch size")
-			preparedLogs := prepareAwsVpcLogsForIngestion(len(outputChannel.OutputChannel))
-			ingestIntoOpensearch(&preparedLogs)
+			logger.Info("Batch size is less than prefered batch size")
+			if currentRetries < config.Config.Services.Opensearch.Retries {
+				logger.Debug(fmt.Sprintf("As batch size is less than prefered batch size, waiting for more logs, remaining retries: %d",
+					config.Config.Services.Opensearch.Retries-currentRetries))
+				time.Sleep(time.Duration(config.Config.Services.Opensearch.RetryDelay) * time.Millisecond)
+				currentRetries++
+
+			} else {
+				logger.Info("Waiting exceeded, ingesting logs even if batch size is less than prefered batch size")
+				preparedLogs := prepareAwsVpcLogsForIngestion(len(outputChannel.OutputChannel))
+				ingestIntoOpensearch(&preparedLogs)
+				currentRetries = 0
+			}
 		}
 	}
 }

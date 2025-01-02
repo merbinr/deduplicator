@@ -2,11 +2,11 @@ package outgoing
 
 import (
 	"fmt"
-	"log/slog"
 	"os"
 
 	"github.com/merbinr/deduplicator/internal/config"
 	"github.com/merbinr/deduplicator/internal/queue"
+	"github.com/merbinr/deduplicator/pkg/logger"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -55,7 +55,7 @@ func CreateQueueClient() error {
 }
 
 func SendMessage(message []byte) error {
-
+	logger := logger.GetLogger()
 	err := outgoing_queue_conn.Channel.Publish(
 		"",                             // exchange
 		outgoing_queue_conn.Queue.Name, // routing key (queue name)
@@ -69,6 +69,6 @@ func SendMessage(message []byte) error {
 	if err != nil {
 		return fmt.Errorf("unable to publish message to the queue, err: %s", err)
 	}
-	slog.Debug("Successfully send message to the outgoing queue")
+	logger.Info("Successfully send message to the outgoing queue")
 	return nil
 }
