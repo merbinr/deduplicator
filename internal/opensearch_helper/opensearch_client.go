@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/tls"
 	"fmt"
-	"log"
 	"log/slog"
 	"net/http"
 	"os"
@@ -38,7 +37,7 @@ func LoadOpenSearchClient() {
 		os.Exit(1)
 	}
 
-	connString := fmt.Sprintf("https://%s:%d/", host, port)
+	connString := fmt.Sprintf("http://%s:%d/", host, port)
 	client, err := opensearch.NewClient(opensearch.Config{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
@@ -48,7 +47,8 @@ func LoadOpenSearchClient() {
 		Password:  password,
 	})
 	if err != nil {
-		log.Fatalf("Error creating the client: %s", err)
+		slog.Error(fmt.Sprintf("Error creating the client: %s", err))
+		os.Exit(1)
 	}
 	OpenSearchClient = client
 	createIndexes()
@@ -61,11 +61,13 @@ func createIndexes() {
 func ingestIntoOpensearch(logs *[]byte) {
 	blk, err := OpenSearchClient.Bulk(bytes.NewReader(*logs))
 	if err != nil {
-		log.Fatalf("Error ingesting data: %s", err)
+		slog.Error(fmt.Sprintf("Error ingesting data: %s", err))
+		os.Exit(1)
 	}
 	if blk.IsError() {
-		log.Fatalf("Error ingesting data, status code: %d, body: %s", blk.StatusCode,
-			blk.String())
+		slog.Error(fmt.Sprintf("Error ingesting data, status code: %d, body: %s", blk.StatusCode,
+			blk.String()))
+		os.Exit(1)
 	}
 	slog.Info("Data ingested successfully")
 }

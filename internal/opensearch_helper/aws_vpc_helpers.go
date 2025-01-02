@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
-	"log"
+	"log/slog"
+	"os"
 	"strings"
 
 	"github.com/merbinr/deduplicator/internal/outputChannel"
@@ -84,18 +86,20 @@ func createAwsVpcIndex() {
 	}
 	response, err := req.Do(context.Background(), OpenSearchClient)
 	if err != nil {
-		log.Fatalf("Error creating index: %s", err)
+		slog.Error(fmt.Sprintf("Error creating index: %s", err))
+		os.Exit(1)
 	}
 
 	if response.StatusCode != 200 {
 		body, err := io.ReadAll(response.Body)
 		if err != nil {
-			log.Fatalf("Error reading response body: %v\n", err)
+			slog.Error(fmt.Sprintf("Error reading response body: %v\n", err))
+			os.Exit(1)
 		}
-		log.Fatalf("Error creating index, status code: %d, body: %s",
-			response.StatusCode, string(body))
+		slog.Error(fmt.Sprintf("Error creating index, status code: %d, body: %s",
+			response.StatusCode, string(body)))
 	} else {
-		log.Println("Index created successfully")
+		slog.Info("Index created successfully")
 	}
 }
 
@@ -103,21 +107,23 @@ func checkAwsVpcIndexExists() bool {
 	indexName := "aws_vpc"
 	res, err := OpenSearchClient.Indices.Exists([]string{indexName})
 	if err != nil {
-		log.Fatalf("Error checking if index exists: %s", err)
+		slog.Error(fmt.Sprintf("Error checking if index exists: %s", err))
+		os.Exit(1)
 	}
 	if res.StatusCode == 200 {
-		log.Println("Index exists, skipping creation")
+		slog.Info("Index exists, skipping creation")
 		return true
 	} else if res.StatusCode == 404 {
-		log.Println("Index doesn't exist")
+		slog.Info("Index doesn't exist")
 		return false
 	} else {
 		body, err := io.ReadAll(res.Body)
 		if err != nil {
-			log.Fatalf("Error reading response body: %v\n", err)
+			slog.Error(fmt.Sprintf("Error reading response body: %v\n", err))
+			os.Exit(1)
 		}
-		log.Fatalf("Error checking if index exists, status code: %d, body %s",
-			res.StatusCode, string(body))
+		slog.Error(fmt.Sprintf("Error checking if index exists, status code: %d, body %s",
+			res.StatusCode, string(body)))
 		return false
 	}
 }
