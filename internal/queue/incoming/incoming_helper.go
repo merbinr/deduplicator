@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"time"
 
 	"github.com/merbinr/deduplicator/internal/config"
 	"github.com/merbinr/deduplicator/internal/deduplication"
@@ -73,18 +74,26 @@ func ConsumeMessage() {
 		slog.Error(fmt.Sprintf("unable to consume message from incoming queue, err: %s", err))
 	}
 
-	for msg := range msgs {
-		slog.Debug(fmt.Sprintf("Sending message body into queue: %s", string(msg.Body)))
-
-		err = deduplication.ProcessDeduplication(msg.Body)
-		if err != nil {
-			slog.Error(fmt.Sprintf("unable to process deduplication, err: %s", err))
-		}
-
-		err = msg.Ack(true)
-		if err != nil {
-			slog.Error(fmt.Sprintf("unable to acknowledge the message, err: %s", err))
+	for {
+		select {
+		case msg := <-msgs:
+			if len(msg.Body) > 0 {
+				slog.Debug(fmt.Sprintf("Sending message body into queue: %s", string(msg.Body)))
+				err = deduplication.ProcessDeduplication(msg.Body)
+				if err != nil {
+					slog.Error(fmt.Sprintf("unable to process deduplication, err: %s", err))
+				}
+				err = msg.Ack(true)
+				if err != nil {
+					slog.Error(fmt.Sprintf("unable to acknowledge the message, err: %s", err))
+				}
+			} else {
+				slog.Error("message body is empty")
+				time.Sleep(1 * time.Second)
+			}
+		default:
+			slog.Debug("No message in queue, waiting for 1 second")
+			time.Sleep(1 * time.Second)
 		}
 	}
-	slog.Info("Channel closed, breaking the loop")
 }

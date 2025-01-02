@@ -16,7 +16,7 @@ func main() {
 	slog.Info("Initializing deduplication process")
 	initializer()
 
-	fmt.Println("De-duplication process started")
+	slog.Info("De-duplication process started")
 	go incoming.ConsumeMessage()
 
 	if config.Config.OutputMethod == "queue" {
