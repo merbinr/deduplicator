@@ -25,7 +25,7 @@ func main() {
 
 	if config.Config.OutputMethod == "queue" {
 		for msg := range outputChannel.OutputChannel {
-			err := outgoing.SendMessage(msg)
+			err := outgoing.SendMessage(&msg)
 			if err != nil {
 				logger.Error(fmt.Sprintf("unable to send message to outgoing queue, err: %s", err))
 			}

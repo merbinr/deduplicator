@@ -131,7 +131,7 @@ func checkAwsVpcIndexExists() bool {
 	}
 }
 
-func prepareAwsVpcLogsForIngestion(batchSize int) []byte {
+func prepareAwsVpcLogsForIngestion(batchSize *int) []byte {
 	var buf bytes.Buffer
 	indexName := "aws_vpc"
 	currentRecord := 1
@@ -148,7 +148,7 @@ func prepareAwsVpcLogsForIngestion(batchSize int) []byte {
 		buf.WriteByte('\n')
 
 		// Getting messages from channel is forever running loop, So we need to break it after batchSize
-		if currentRecord == batchSize {
+		if currentRecord == *batchSize {
 			break
 		}
 		currentRecord++

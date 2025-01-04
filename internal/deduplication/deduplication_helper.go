@@ -14,15 +14,15 @@ import (
 	"github.com/merbinr/log_models/models"
 )
 
-func ProcessDeduplication(msg []byte) error {
+func ProcessDeduplication(msg *[]byte) error {
 	logger := logger.GetLogger()
-	cloud, err := jsonparser.GetString(msg, "Cloud")
+	cloud, err := jsonparser.GetString(*msg, "Cloud")
 	logger.Debug(fmt.Sprintf("Cloud: %s", cloud))
 	if err != nil {
 		return fmt.Errorf("unable to get cloud value from log message, err: %s", err)
 	}
 
-	log_type, err := jsonparser.GetString(msg, "Type")
+	log_type, err := jsonparser.GetString(*msg, "Type")
 	logger.Debug(fmt.Sprintf("Log Type : %s", log_type))
 	if err != nil {
 		return fmt.Errorf("unable to get log_type value from log message")
@@ -41,18 +41,18 @@ func ProcessDeduplication(msg []byte) error {
 	return nil
 }
 
-func processAwsVpcLogs(vpc_log_msg []byte) error {
+func processAwsVpcLogs(vpc_log_msg *[]byte) error {
 	logger := logger.GetLogger()
 	var vpc_log_data models.VpcNormalizedData
 
 	logger.Debug("Unmarshalling the log message to struct VpcNormalizedData")
-	err := json.Unmarshal(vpc_log_msg, &vpc_log_data)
+	err := json.Unmarshal(*vpc_log_msg, &vpc_log_data)
 	if err != nil {
 		return fmt.Errorf("unable to load the logs to the struct, log %s, error: %s",
-			string(vpc_log_msg), err)
+			string(*vpc_log_msg), err)
 	}
 	logger.Debug("Generating unique string for the log")
-	unique_str, err := createUniqueStrAwsVpcLog(vpc_log_data)
+	unique_str, err := createUniqueStrAwsVpcLog(&vpc_log_data)
 	logger.Debug(fmt.Sprintf("Unique string: %s", unique_str))
 
 	if err != nil {
@@ -60,7 +60,7 @@ func processAwsVpcLogs(vpc_log_msg []byte) error {
 	}
 
 	logger.Debug("Checking if the log is duplicate or not")
-	value, err := rediscache.GetValue(unique_str)
+	value, err := rediscache.GetValue(&unique_str)
 	if err != nil {
 		return fmt.Errorf("unable to get value from redis, key: %s, err: %s", unique_str, err)
 	}
@@ -69,9 +69,10 @@ func processAwsVpcLogs(vpc_log_msg []byte) error {
 		// Non duplicate log
 		logger.Debug("Sending the message to outgoing queue")
 
-		outputChannel.OutputChannel <- vpc_log_msg
+		outputChannel.OutputChannel <- *vpc_log_msg
 
-		err = rediscache.SetValue(unique_str, string(vpc_log_msg))
+		vpcLogMsgString := string(*vpc_log_msg)
+		err = rediscache.SetValue(&unique_str, &vpcLogMsgString)
 		logger.Debug("Setting the value in redis, So that it can be used for future deduplication")
 		if err != nil {
 			return fmt.Errorf("unable to set the value in redis, err: %s", err)
@@ -83,11 +84,11 @@ func processAwsVpcLogs(vpc_log_msg []byte) error {
 	return nil
 }
 
-func createUniqueStrAwsVpcLog(vpc_log models.VpcNormalizedData) (string, error) {
+func createUniqueStrAwsVpcLog(vpc_log *models.VpcNormalizedData) (string, error) {
 	unique_string_fields := config.Config.LogSources.AwsVpcLogs.UniqueStringFields
 	fields := strings.Split(unique_string_fields, ",")
-	val := reflect.ValueOf(vpc_log)
-	typ := reflect.TypeOf(vpc_log)
+	val := reflect.ValueOf(*vpc_log)
+	typ := reflect.TypeOf(*vpc_log)
 	unique_string := ""
 
 	for _, field := range fields {

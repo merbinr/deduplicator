@@ -80,7 +80,7 @@ func ConsumeMessage() {
 		case msg := <-msgs:
 			if len(msg.Body) > 0 {
 				logger.Debug(fmt.Sprintf("Sending message body into queue: %s", string(msg.Body)))
-				err = deduplication.ProcessDeduplication(msg.Body)
+				err = deduplication.ProcessDeduplication(&msg.Body)
 				if err != nil {
 					logger.Error(fmt.Sprintf("unable to process deduplication, err: %s", err))
 				}

@@ -54,7 +54,7 @@ func CreateQueueClient() error {
 	return nil
 }
 
-func SendMessage(message []byte) error {
+func SendMessage(message *[]byte) error {
 	logger := logger.GetLogger()
 	err := outgoing_queue_conn.Channel.Publish(
 		"",                             // exchange
@@ -63,7 +63,7 @@ func SendMessage(message []byte) error {
 		false,                          // immediate
 		amqp.Publishing{
 			ContentType: "application/json",
-			Body:        message,
+			Body:        *message,
 		},
 	)
 	if err != nil {

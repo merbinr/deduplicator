@@ -87,7 +87,7 @@ func IngestLogs() {
 		} else if len(outputChannel.OutputChannel) >= config.Config.Services.Opensearch.PreferredBatchSize {
 			logger.Debug(fmt.Sprintf("More logs to ingest than prefered batch size: %d, preffered batch size: %d",
 				len(outputChannel.OutputChannel), config.Config.Services.Opensearch.PreferredBatchSize))
-			preparedLogs := prepareAwsVpcLogsForIngestion(config.Config.Services.Opensearch.PreferredBatchSize)
+			preparedLogs := prepareAwsVpcLogsForIngestion(&config.Config.Services.Opensearch.PreferredBatchSize)
 			ingestIntoOpensearch(&preparedLogs)
 			currentRetries = 0
 			time.Sleep(200 * time.Millisecond)
@@ -102,7 +102,8 @@ func IngestLogs() {
 
 			} else {
 				logger.Info("Waiting exceeded, ingesting logs even if batch size is less than prefered batch size")
-				preparedLogs := prepareAwsVpcLogsForIngestion(len(outputChannel.OutputChannel))
+				batchSize := len(outputChannel.OutputChannel)
+				preparedLogs := prepareAwsVpcLogsForIngestion(&batchSize)
 				ingestIntoOpensearch(&preparedLogs)
 				currentRetries = 0
 			}

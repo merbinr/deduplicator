@@ -34,27 +34,27 @@ func LoadRedisClient() error {
 	return nil
 }
 
-func SetValue(key string, value string) error {
+func SetValue(key *string, value *string) error {
 	expiry := config.Config.Services.RedisCache.Expiry
 	expiry_in_duration := time.Duration(expiry) * time.Second
 	// expiry is already of type time.Duration
-	err := rdb.Set(ctx, key, value, expiry_in_duration).Err()
+	err := rdb.Set(ctx, *key, value, expiry_in_duration).Err()
 	if err != nil {
-		return fmt.Errorf("unable to set key: %s in the cache, error: %s", key, err)
+		return fmt.Errorf("unable to set key: %s in the cache, error: %s", *key, err)
 	}
 	return nil
 }
 
-func GetValue(key string) (string, error) {
+func GetValue(key *string) (string, error) {
 	logger := logger.GetLogger()
-	val, err := rdb.Get(ctx, key).Result()
+	val, err := rdb.Get(ctx, *key).Result()
 
 	if err == redis.Nil {
 		logger.Debug("Key does not exist in redis cache")
 		return "", nil
 	}
 	if err != nil {
-		return "", fmt.Errorf("unable to get value for the key %s from cache, error: %s", key, err)
+		return "", fmt.Errorf("unable to get value for the key %s from cache, error: %s", *key, err)
 	}
 	return val, nil
 }
